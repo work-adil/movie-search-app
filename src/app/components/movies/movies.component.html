@@ -1,0 +1,28 @@
+<div class="container mt-4">
+    <div class="input-group mb-3">
+        <input [(ngModel)]="searchTitle"
+               class="form-control"
+               placeholder="Enter movie title">
+        <div class="input-group-append">
+            <button (click)="search()"
+                    class="btn btn-primary">
+                Search
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-3"
+             *ngFor="let movie of movies">
+            <div class="card h-100">
+                <img [src]="movie.poster"
+                     class="card-img-top"
+                     alt="{{ movie.title }} poster">
+                <div class="card-body">
+                    <h4 class="card-title">{{ movie.title }}</h4>
+                    <p class="card-text">Released: {{ movie.year }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
