@@ -28,7 +28,7 @@
     </div>
 
     <!-- No Results Message -->
-    <div *ngIf="noResults" class="alert alert-warning" role="alert">
+    <div *ngIf="!errorMessage && noResults" class="alert alert-warning" role="alert">
         No movies found for "{{ searchTitle }}". Please try a different title.
     </div>
 

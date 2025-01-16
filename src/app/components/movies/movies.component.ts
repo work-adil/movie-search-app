@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MovieService } from '../../services/movie.service';
 import { GetMoviesResult, MovieResponse } from '../../models/movie-response.model';
-import { Subject, Subscription } from 'rxjs';
+import { Subject, Subscription, of } from 'rxjs';
 import { debounceTime, switchMap, catchError } from 'rxjs/operators';
 import { MovieCardComponent } from '../movies/movie-card/movie-card.component'
 
@@ -32,19 +32,28 @@ export class MoviesComponent implements OnInit, OnDestroy {
       debounceTime(500), // Wait for 500ms of inactivity before making the request
       switchMap((searchTitle) => {
         if (searchTitle.trim()) {
-          return this.movieService.searchMovies(searchTitle); // Make the search request
+          this.isLoading = true;
+          this.noResults = false; // Reset no results message before making the request
+          this.errorMessage = '';  // Reset error message before making the request
+          return this.movieService.searchMovies(searchTitle).pipe(
+            catchError((error) => {
+              this.isLoading = false;
+              var errorMsg = error?.error;
+              console.error("Error", error);
+              if (errorMsg)
+                this.errorMessage = errorMsg.Message ? errorMsg.Message : errorMsg;
+              else
+                this.errorMessage = 'An error occurred while fetching movies. Please try again later.';
+              return of([]); // Use 'of' to return an observable with an empty array
+            })
+          );
         } else {
-          return []; // Return an empty array if no search term
+          this.isLoading = false;
+          return of([]); // Use 'of' to return an observable with an empty array
         }
-      }),
-      catchError((error) => {
-        console.error('Error fetching movies:', error);
-        this.isLoading = false;
-        this.errorMessage = 'An error occurred while fetching movies. Please try again later.';
-        return [];
       })
     ).subscribe(
-      (response: GetMoviesResult | []) => {
+      (response: GetMoviesResult | never[]) => {
         this.isLoading = false;
         if (response && (response as GetMoviesResult).isSuccess) {
           const result = (response as GetMoviesResult).result as MovieResponse[];
