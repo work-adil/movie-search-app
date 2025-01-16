@@ -1,23 +1,47 @@
 <div class="container mt-4">
+    <!-- Search Section -->
     <div class="input-group mb-3">
         <input [(ngModel)]="searchTitle"
                class="form-control"
-               placeholder="Enter movie title">
+               placeholder="Enter movie title"
+               aria-label="Movie Title"
+               (keyup.enter)="search()"  
+        required /> 
+
         <div class="input-group-append">
-            <button (click)="search()"
-                    class="btn btn-primary">
-                Search
+            <button (click)="search()" class="btn btn-primary" aria-label="Search">
+                <!-- Search Icon -->
+                <i class="bi bi-search"></i>
             </button>
         </div>
     </div>
 
+    <!-- Loading Spinner -->
+    <div *ngIf="isLoading" class="text-center my-3">
+        <div class="spinner-border" role="status">
+            <span class="sr-only"></span>
+        </div>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
+        {{ errorMessage }}
+    </div>
+
+    <!-- No Results Message -->
+    <div *ngIf="noResults" class="alert alert-warning" role="alert">
+        No movies found for "{{ searchTitle }}". Please try a different title.
+    </div>
+
+    <!-- Movie Results -->
     <div class="row">
-        <div class="col-md-4 mb-3"
+        <div class="col-md-4 col-sm-6 mb-3"
              *ngFor="let movie of movies">
             <div class="card h-100">
                 <img [src]="movie.poster"
                      class="card-img-top"
-                     alt="{{ movie.title }} poster">
+                     alt="{{ movie.title }} poster"
+                     loading="lazy"> <!-- Add lazy loading for better performance -->
                 <div class="card-body">
                     <h4 class="card-title">{{ movie.title }}</h4>
                     <p class="card-text">Released: {{ movie.year }}</p>

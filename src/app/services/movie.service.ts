@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environment';
+import { GetMoviesResult } from '../models/movie-response.model';
 
 @Injectable({
   providedIn: 'root'
@@ -12,13 +13,8 @@ export class MovieService {
 
   constructor(private http: HttpClient) { }
 
-  searchMovies(title: string): Observable<any> {
+  searchMovies(title: string): Observable<GetMoviesResult> {
     const url = `${this.apiUrl}?s=${title}&apikey=${this.apiKey}`;
-    return this.http.get<any>(url);
-  }
-
-  getMovieDetails(id: string): Observable<any> {
-    const url = `${this.apiUrl}/movie/${id}&apikey=${this.apiKey}`;
-    return this.http.get<any>(url);
+    return this.http.get<GetMoviesResult>(url);
   }
 }

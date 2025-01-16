@@ -32,9 +32,14 @@ describe('MoviesComponent', () => {
 
   it('should retrieve movies on search', () => {
     const dummyMoviesResponse = {
-      Result: [
-        { Title: 'Inception', Year: '2010', Poster: 'url-to-poster' },
-        { Title: 'Interstellar', Year: '2014', Poster: 'url-to-poster' }
+      isSuccess: true, 
+      message: "",     
+      errors: [],      
+      errorCode: 0,    
+      responseStatusCode: 200, 
+      result: [
+        { title: 'Inception', year: '2010', poster: 'url-to-poster' },
+        { title: 'Interstellar', year: '2014', poster: 'url-to-poster' }
       ]
     };
 
@@ -44,6 +49,6 @@ describe('MoviesComponent', () => {
     component.search();
 
     expect(component.movies.length).toBe(2);
-    expect(component.movies).toEqual(dummyMoviesResponse.Result);
+    expect(component.movies).toEqual(dummyMoviesResponse.result);
   });
 });
