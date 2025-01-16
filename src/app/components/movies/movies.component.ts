@@ -23,6 +23,7 @@ export class MoviesComponent implements OnInit, OnDestroy {
 
   private searchSubject: Subject<string> = new Subject<string>(); // Subject to handle input
   private searchSubscription: Subscription = new Subscription(); // To manage the subscription
+  private immediateSearchSubscription: Subscription = new Subscription(); // Subscription for immediate search
 
   constructor(private movieService: MovieService) { }
 
@@ -39,9 +40,8 @@ export class MoviesComponent implements OnInit, OnDestroy {
             catchError((error) => {
               this.isLoading = false;
               var errorMsg = error?.error;
-              console.error("Error", error);
               if (errorMsg)
-                this.errorMessage = errorMsg.Message ? errorMsg.Message : errorMsg;
+                this.errorMessage = errorMsg.message ? errorMsg.message : errorMsg;
               else
                 this.errorMessage = 'An error occurred while fetching movies. Please try again later.';
               return of([]); // Use 'of' to return an observable with an empty array
@@ -75,14 +75,75 @@ export class MoviesComponent implements OnInit, OnDestroy {
     if (this.searchSubscription) {
       this.searchSubscription.unsubscribe();
     }
+    if (this.immediateSearchSubscription) {
+      this.immediateSearchSubscription.unsubscribe();
+    }
   }
 
   // This method will be triggered on input change
-  onSearchTitleChange() {
+  onSearchTitleChange(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      this.onSearchTitleEnter();
+    } else {
+      this.noResults = false; // Reset no results message
+      this.errorMessage = '';  // Reset error message
+
+      // Push the search query to the subject
+      this.searchSubject.next(this.searchTitle);
+    }
+  }
+
+  // This method will be triggered when Enter key is pressed
+  onSearchTitleEnter() {
+    this.cancelDebouncedSearch();
+    this.performImmediateSearch();
+  }
+
+  // This method will be triggered when the search button is clicked
+  onSearchButtonClick() {
+    this.cancelDebouncedSearch();
+    this.performImmediateSearch();
+  }
+
+  // Cancel the debounced search
+  cancelDebouncedSearch() {
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
+      this.searchSubscription = new Subscription();
+    }
+  }
+
+  // Perform immediate search
+  performImmediateSearch() {
     this.noResults = false; // Reset no results message
     this.errorMessage = '';  // Reset error message
+    this.isLoading = true;
 
-    // Push the search query to the subject
-    this.searchSubject.next(this.searchTitle);
+    this.immediateSearchSubscription = this.movieService.searchMovies(this.searchTitle).pipe(
+      catchError((error) => {
+        this.isLoading = false;
+        var errorMsg = error?.error;
+        if (errorMsg)
+          this.errorMessage = errorMsg.message ? errorMsg.message : errorMsg;
+        else
+          this.errorMessage = 'An error occurred while fetching movies. Please try again later.';
+        return of([]); // Use 'of' to return an observable with an empty array
+      })
+    ).subscribe(
+      (response: GetMoviesResult | never[]) => {
+        this.isLoading = false;
+        if (response && (response as GetMoviesResult).isSuccess) {
+          const result = (response as GetMoviesResult).result as MovieResponse[];
+          if (result.length > 0) {
+            this.movies = result;
+            this.noResults = false;
+          } else {
+            this.noResults = true;
+          }
+        } else {
+          this.noResults = true;
+        }
+      }
+    );
   }
 }

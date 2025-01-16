@@ -5,11 +5,12 @@
                class="form-control"
                placeholder="Enter movie title"
                aria-label="Movie Title"
-               (keyup)="onSearchTitleChange()" 
+               (keyup)="onSearchTitleChange($event)"
+               (keydown.enter)="onSearchTitleEnter()" 
         required />
 
         <div class="input-group-append">
-            <button class="btn btn-primary" aria-label="Search">
+            <button class="btn btn-primary" aria-label="Search" (click)="onSearchButtonClick()">
                 <i class="bi bi-search"></i>
             </button>
         </div>
