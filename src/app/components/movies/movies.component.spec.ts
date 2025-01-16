@@ -1,9 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { MoviesComponent } from './movies.component';
+import { FormsModule } from '@angular/forms';
+import { of, throwError } from 'rxjs';
 import { MovieService } from '../../services/movie.service';
-import { of } from 'rxjs';
+import { GetMoviesResult } from '../../models/movie-response.model';
+import { MoviesComponent } from './movies.component';
+import { MovieCardComponent } from '../movies/movie-card/movie-card.component';
 
 describe('MoviesComponent', () => {
   let component: MoviesComponent;
@@ -12,36 +14,81 @@ describe('MoviesComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MoviesComponent, HttpClientTestingModule, FormsModule], // Import MoviesComponent
+      imports: [HttpClientTestingModule, FormsModule, MoviesComponent, MovieCardComponent], // Ensure standalone components are in imports
       providers: [MovieService]
     }).compileComponents();
-  });
 
-  beforeEach(() => {
     fixture = TestBed.createComponent(MoviesComponent);
     component = fixture.componentInstance;
     movieService = TestBed.inject(MovieService);
+
+    // Assign a mock movie object to the movies array
+    component.movies = [{ title: 'Inception', year: '2010', poster: 'url-to-poster' }];
+
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  afterEach(() => {
+    fixture.destroy();
+  });
+
+  it('should create the component', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should retrieve movies on search', () => {
-    const dummyMoviesResponse = {
+  it('should call searchMovies and update movies on valid input', () => {
+    const dummyMovies: GetMoviesResult = {
+      isSuccess: true,
+      message: "",
+      errors: [],
+      errorCode: 0,
+      responseStatusCode: 200,
       result: [
         { title: 'Inception', year: '2010', poster: 'url-to-poster' },
         { title: 'Interstellar', year: '2014', poster: 'url-to-poster' }
       ]
     };
 
-    spyOn(movieService, 'searchMovies').and.returnValue(of(dummyMoviesResponse));
+    spyOn(movieService, 'searchMovies').and.returnValue(of(dummyMovies));
 
-    component.searchTitle = 'inception';
-    component.search();
+    component.searchTitle = 'Movie';
+    component.onSearchTitleChange();
 
+    expect(movieService.searchMovies).toHaveBeenCalledWith('Movie');
+    expect(component.isLoading).toBeFalse();
+    expect(component.noResults).toBeFalse();
     expect(component.movies.length).toBe(2);
-    expect(component.movies).toEqual(dummyMoviesResponse.result);
+  });
+
+  it('should handle empty search results', () => {
+    const emptyMovies: GetMoviesResult = {
+      result: [], isSuccess: true,
+      message: "",
+      errors: [],
+      errorCode: 0,
+      responseStatusCode: 200,
+    };
+
+    spyOn(movieService, 'searchMovies').and.returnValue(of(emptyMovies));
+
+    component.searchTitle = 'Nonexistent Movie';
+    component.onSearchTitleChange();
+
+    expect(movieService.searchMovies).toHaveBeenCalledWith('Nonexistent Movie');
+    expect(component.isLoading).toBeFalse();
+    expect(component.noResults).toBeTrue();
+    expect(component.movies.length).toBe(0);
+  });
+
+  it('should handle errors from searchMovies', () => {
+    spyOn(movieService, 'searchMovies').and.returnValue(throwError(() => new Error('Error fetching movies')));
+
+    component.searchTitle = 'Error Movie';
+    component.onSearchTitleChange();
+
+    expect(movieService.searchMovies).toHaveBeenCalledWith('Error Movie');
+    expect(component.isLoading).toBeFalse();
+    expect(component.noResults).toBeFalse();
+    expect(component.errorMessage).toBe('An error occurred while fetching movies. Please try again later.');
   });
 });

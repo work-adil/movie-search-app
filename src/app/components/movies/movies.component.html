@@ -5,12 +5,11 @@
                class="form-control"
                placeholder="Enter movie title"
                aria-label="Movie Title"
-               (keyup.enter)="search()"  
-        required /> 
+               (keyup)="onSearchTitleChange()" 
+        required />
 
         <div class="input-group-append">
-            <button (click)="search()" class="btn btn-primary" aria-label="Search">
-                <!-- Search Icon -->
+            <button class="btn btn-primary" aria-label="Search">
                 <i class="bi bi-search"></i>
             </button>
         </div>
@@ -37,16 +36,7 @@
     <div class="row">
         <div class="col-md-4 col-sm-6 mb-3"
              *ngFor="let movie of movies">
-            <div class="card h-100">
-                <img [src]="movie.poster"
-                     class="card-img-top"
-                     alt="{{ movie.title }} poster"
-                     loading="lazy"> <!-- Add lazy loading for better performance -->
-                <div class="card-body">
-                    <h4 class="card-title">{{ movie.title }}</h4>
-                    <p class="card-text">Released: {{ movie.year }}</p>
-                </div>
-            </div>
+            <app-movie-card [movie]="movie"></app-movie-card>
         </div>
     </div>
 </div>

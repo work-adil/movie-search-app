@@ -4,3 +4,31 @@
   border-width: 0.4em;
   border-top-color: #3498db;
 }
+/* Focus styling for the input field */
+.input-group input:focus {
+  border-color: #007bff; /* Change to the color of your choice */
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Optional glow effect */
+}
+
+/* Focus styling for the button */
+.input-group-append button:focus {
+  outline: none; /* Remove default outline */
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Optional glow effect */
+}
+
+/* Optional: Add focus effect when both input and button are focused */
+.input-group input:focus + .input-group-append button {
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Optional glow effect */
+}
+
+/* Highlight entire input-group when any child (input or button) is focused */
+.input-group:focus-within {
+  border-color: #007bff; /* Highlight border color */
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.5); /* Optional glow effect */
+}
+
+/* Optional: Apply specific focus styles to input and button for better clarity */
+.input-group input:focus, .input-group button:focus {
+  outline: none; /* Remove default outline */
+  box-shadow: none; /* Remove default box-shadow */
+}
