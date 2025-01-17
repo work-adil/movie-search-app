@@ -31,33 +31,17 @@ export class MoviesComponent implements OnInit, OnDestroy {
     this.searchSubject.pipe(
       debounceTime(500), // Wait for 500ms of inactivity before making the request
       switchMap((searchTitle) => {
-        if (searchTitle.trim() && searchTitle.trim().length >= 3) { // Check for minimum length
-          this.isLoading = true;
-          this.noResults = false; // Reset no results message before making the request
-          this.errorMessage = '';  // Reset error message before making the request
-          return this.movieService.searchMovies(searchTitle).pipe(
-            catchError((error) => {
-              this.isLoading = false;
-              this.errorMessage = error?.error?.Message || error?.error || 'An error occurred while fetching movies. Please try again later.';
-              return of([]); // Use 'of' to return an observable with an empty array
-            })
-          );
+        if (searchTitle.trim()) {
+          return this.fetchMovies(searchTitle);
         } else {
           this.isLoading = false;
-          return of([]); // Use 'of' to return an observable with an empty array
+          return of({} as GetMoviesResult);
         }
       }),
       takeUntil(this.destroy$)
     ).subscribe(
-      (response: GetMoviesResult | never[]) => {
-        this.isLoading = false;
-        if (response && (response as GetMoviesResult).isSuccess) {
-          const result = (response as GetMoviesResult).result as MovieResponse[];
-          this.movies = result.length > 0 ? result : [];
-          this.noResults = result.length === 0;
-        } else {
-          this.noResults = true;
-        }
+      (response: GetMoviesResult) => {
+        this.handleSearchResponse(response);
       }
     );
   }
@@ -112,28 +96,37 @@ export class MoviesComponent implements OnInit, OnDestroy {
 
   // Perform immediate search
   performImmediateSearch() {
-    this.noResults = false; // Reset no results message
-    this.errorMessage = '';  // Reset error message
-    this.isLoading = true;
+    this.fetchMovies(this.searchTitle).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(
+      (response: GetMoviesResult) => {
+        this.handleSearchResponse(response);
+      });
+  }
 
-    this.movieService.searchMovies(this.searchTitle).pipe(
+  private fetchMovies(searchTitle: string) {
+    this.isLoading = true;
+    this.noResults = false;
+    this.errorMessage = '';
+
+    return this.movieService.searchMovies(searchTitle).pipe(
       catchError((error) => {
         this.isLoading = false;
         this.errorMessage = error?.error?.Message || error?.error || 'An error occurred while fetching movies. Please try again later.';
-        return of([]); // Use 'of' to return an observable with an empty array
-      }),
-      takeUntil(this.destroy$)
-    ).subscribe(
-      (response: GetMoviesResult | never[]) => {
-        this.isLoading = false;
-        if (response && (response as GetMoviesResult).isSuccess) {
-          const result = (response as GetMoviesResult).result as MovieResponse[];
-          this.movies = result.length > 0 ? result : [];
-          this.noResults = result.length === 0;
-        } else {
-          this.noResults = true;
-        }
-      }
+        return of({} as GetMoviesResult);
+      })
     );
+  }
+
+  private handleSearchResponse(response: GetMoviesResult) {
+    this.isLoading = false;
+    if (response && (response as GetMoviesResult).isSuccess) {
+      const result = (response as GetMoviesResult).result as MovieResponse[];
+      this.movies = result.length > 0 ? result : [];
+      this.noResults = result.length === 0;
+    } else {
+      this.noResults = true;
+
+    }
   }
 }
