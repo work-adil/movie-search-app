@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MovieService } from '../../services/movie.service';
 import { GetMoviesResult, MovieResponse } from '../../models/movie-response.model';
 import { Subject, merge, of } from 'rxjs';
-import { debounceTime, switchMap, catchError, takeUntil, filter } from 'rxjs/operators';
+import { debounceTime, switchMap, catchError, takeUntil, filter, tap, delay, debounce } from 'rxjs/operators';
 import { MovieCardComponent } from '../movies/movie-card/movie-card.component'
 
 @Component({
@@ -25,22 +25,19 @@ export class MoviesComponent implements OnInit, OnDestroy {
   private searchSubject: Subject<void> = new Subject<void>(); // Subject to handle input
   private destroy$ = new Subject<void>(); // Subject to signal when the component is destroyed
   private immediateSearch = new Subject<void>(); // Subject to signal when immediate search
+  private  isImmediate = false; // Subject to signal when retry
 
   constructor(private movieService: MovieService) { }
 
   ngOnInit() {
     merge(this.searchSubject.pipe(
       debounceTime(500), // Wait for 500ms of inactivity before making the request
+      filter(() => this.lastSearchedTitle !== this.searchTitle)
     ),
       this.immediateSearch).pipe(
         takeUntil(this.destroy$),
-        switchMap(() => {
-          if (this.lastSearchedTitle !== this.searchTitle) {
-            return this.fetchMovies(this.searchTitle);
-          }
-          else
-            return of({ isSuccess: true, result: this.movies } as GetMoviesResult);
-        })
+        tap(() => this.lastSearchedTitle = this.searchTitle),
+        switchMap(() => this.fetchMovies(this.searchTitle))
       ).subscribe(
         (response: GetMoviesResult) => {
           this.handleSearchResponse(response);
@@ -55,9 +52,7 @@ export class MoviesComponent implements OnInit, OnDestroy {
 
   // This method will be triggered on input change
   onSearchTitleChange(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      this.onSearchTitleEnter();
-    } else {
+    if (event.key !== 'Enter') {
       if (this.searchTitle.trim() === '') {
         this.resetSearch();
       } else {
@@ -113,7 +108,6 @@ export class MoviesComponent implements OnInit, OnDestroy {
   private handleSearchResponse(response: GetMoviesResult) {
     this.isLoading = false;
     if (response && (response as GetMoviesResult).isSuccess) {
-      this.lastSearchedTitle = this.searchTitle;
       const result = (response as GetMoviesResult).result as MovieResponse[];
       this.movies = result.length > 0 ? result : [];
       this.noResults = result.length === 0;
