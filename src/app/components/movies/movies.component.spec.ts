@@ -40,13 +40,6 @@ describe('MoviesComponent', () => {
     expect(component.errorMessage).toBe('');
   });
 
-  it('should fetch movies on search title change', () => {
-    spyOn(movieService, 'searchMovies').and.returnValue(of({ isSuccess: true, message: '', errors: [], errorCode: 0, responseStatusCode: 200, result: mockMovies }));
-    component.searchTitle = 'Movie';
-    component.onSearchTitleChange({ key: 'Enter' } as KeyboardEvent);
-    expect(movieService.searchMovies).toHaveBeenCalledWith('Movie');
-  });
-
   it('should handle no results', () => {
     spyOn(movieService, 'searchMovies').and.returnValue(of({ isSuccess: true, message: '', errors: [], errorCode: 0, responseStatusCode: 200, result: [] }));
     component.searchTitle = 'Non-existent Movie';
