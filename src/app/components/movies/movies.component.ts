@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MovieService } from '../../services/movie.service';
 import { GetMoviesResult, MovieResponse } from '../../models/movie-response.model';
-import { Subject, of } from 'rxjs';
+import { Subject, merge, of } from 'rxjs';
 import { debounceTime, switchMap, catchError, takeUntil } from 'rxjs/operators';
 import { MovieCardComponent } from '../movies/movie-card/movie-card.component'
 
@@ -21,29 +21,24 @@ export class MoviesComponent implements OnInit, OnDestroy {
   noResults: boolean = false;    // Flag to show message when no movies are found
   errorMessage: string = '';     // Error message when something goes wrong
 
-  private searchSubject: Subject<string> = new Subject<string>(); // Subject to handle input
+  private searchSubject: Subject<void> = new Subject<void>(); // Subject to handle input
   private destroy$ = new Subject<void>(); // Subject to signal when the component is destroyed
+  private immediateSearch = new Subject<void>(); // Subject to signal when immediate search
 
   constructor(private movieService: MovieService) { }
 
   ngOnInit() {
-    // Subscribe to the search input and apply debounce
-    this.searchSubject.pipe(
-      debounceTime(500), // Wait for 500ms of inactivity before making the request
-      switchMap((searchTitle) => {
-        if (searchTitle.trim()) {
-          return this.fetchMovies(searchTitle);
-        } else {
-          this.isLoading = false;
-          return of({} as GetMoviesResult);
+    merge(this.searchSubject.pipe(
+        debounceTime(500), // Wait for 500ms of inactivity before making the request
+      ),
+      this.immediateSearch).pipe(
+        takeUntil(this.destroy$),
+        switchMap(() => this.fetchMovies(this.searchTitle))
+      ).subscribe(
+        (response: GetMoviesResult) => {
+          this.handleSearchResponse(response);
         }
-      }),
-      takeUntil(this.destroy$)
-    ).subscribe(
-      (response: GetMoviesResult) => {
-        this.handleSearchResponse(response);
-      }
-    );
+      );
   }
 
   ngOnDestroy() {
@@ -63,27 +58,19 @@ export class MoviesComponent implements OnInit, OnDestroy {
         this.errorMessage = '';  // Reset error message
 
         // Push the search query to the subject
-        this.searchSubject.next(this.searchTitle);
+        this.searchSubject.next();
       }
     }
   }
 
   // This method will be triggered when Enter key is pressed
   onSearchTitleEnter() {
-    if (this.searchTitle.trim() === '') {
-      this.resetSearch();
-    } else {
       this.performImmediateSearch();
-    }
   }
 
   // This method will be triggered when the search button is clicked
   onSearchButtonClick() {
-    if (this.searchTitle.trim() === '') {
-      this.resetSearch();
-    } else {
       this.performImmediateSearch();
-    }
   }
 
   // Reset search state
@@ -96,12 +83,9 @@ export class MoviesComponent implements OnInit, OnDestroy {
 
   // Perform immediate search
   performImmediateSearch() {
-    this.fetchMovies(this.searchTitle).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe(
-      (response: GetMoviesResult) => {
-        this.handleSearchResponse(response);
-      });
+    if (this.searchTitle.trim() === '') 
+      this.resetSearch();
+    this.immediateSearch.next();
   }
 
   private fetchMovies(searchTitle: string) {
