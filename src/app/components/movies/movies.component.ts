@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MovieService } from '../../services/movie.service';
 import { GetMoviesResult, MovieResponse } from '../../models/movie-response.model';
 import { Subject, merge, of } from 'rxjs';
-import { debounceTime, switchMap, catchError, takeUntil } from 'rxjs/operators';
+import { debounceTime, switchMap, catchError, takeUntil, filter } from 'rxjs/operators';
 import { MovieCardComponent } from '../movies/movie-card/movie-card.component'
 
 @Component({
@@ -17,6 +17,7 @@ import { MovieCardComponent } from '../movies/movie-card/movie-card.component'
 export class MoviesComponent implements OnInit, OnDestroy {
   movies: MovieResponse[] = [];  // Array to store movie results
   searchTitle: string = '';      // Search query input from the user
+  lastSearchedTitle: string = '';      // Search query input from the user
   isLoading: boolean = false;    // Flag to indicate loading state
   noResults: boolean = false;    // Flag to show message when no movies are found
   errorMessage: string = '';     // Error message when something goes wrong
@@ -29,11 +30,17 @@ export class MoviesComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     merge(this.searchSubject.pipe(
-        debounceTime(500), // Wait for 500ms of inactivity before making the request
-      ),
+      debounceTime(500), // Wait for 500ms of inactivity before making the request
+    ),
       this.immediateSearch).pipe(
         takeUntil(this.destroy$),
-        switchMap(() => this.fetchMovies(this.searchTitle))
+        switchMap(() => {
+          if (this.lastSearchedTitle !== this.searchTitle) {
+            return this.fetchMovies(this.searchTitle);
+          }
+          else
+            return of({ isSuccess: true, result: this.movies } as GetMoviesResult);
+        })
       ).subscribe(
         (response: GetMoviesResult) => {
           this.handleSearchResponse(response);
@@ -79,6 +86,7 @@ export class MoviesComponent implements OnInit, OnDestroy {
     this.isLoading = false;
     this.noResults = false;
     this.errorMessage = '';
+    this.lastSearchedTitle = this.searchTitle;
   }
 
   // Perform immediate search
@@ -105,6 +113,7 @@ export class MoviesComponent implements OnInit, OnDestroy {
   private handleSearchResponse(response: GetMoviesResult) {
     this.isLoading = false;
     if (response && (response as GetMoviesResult).isSuccess) {
+      this.lastSearchedTitle = this.searchTitle;
       const result = (response as GetMoviesResult).result as MovieResponse[];
       this.movies = result.length > 0 ? result : [];
       this.noResults = result.length === 0;
